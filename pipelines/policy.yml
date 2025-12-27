@@ -1,0 +1,8 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- script: echo "Policy phase will be added next"
+  displayName: "Placeholder"
