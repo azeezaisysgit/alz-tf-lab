@@ -31,7 +31,12 @@ steps:
       $ErrorActionPreference = "Stop"
       Set-Location "1-management-groups"
 
+      # Clean any cached backend config from previous runs on the agent
+      if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
+      if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+
       terraform init -input=false -reconfigure
+
       terraform fmt -check
       terraform validate
       terraform apply -auto-approve -input=false
