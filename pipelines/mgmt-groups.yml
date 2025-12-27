@@ -31,9 +31,12 @@ steps:
       $ErrorActionPreference = "Stop"
       Set-Location "1-management-groups"
 
-      terraform init -input=false
+      # Always reconfigure backend in CI
+      terraform init -input=false -reconfigure
+
       terraform fmt -check
       terraform validate
-      terraform plan -out tfplan -input=false
-      terraform apply -auto-approve -input=false tfplan
+
+      # Run apply directly (avoids tfplan file issues on Windows agent)
+      terraform apply -auto-approve -input=false
       terraform output -json
