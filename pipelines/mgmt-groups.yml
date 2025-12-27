@@ -25,11 +25,12 @@ steps:
   displayName: "Terraform deploy (1-management-groups)"
   inputs:
     azureSubscription: 'ALZ_SC_01'
-    scriptType: bash
+    scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
-      set -e
-      cd 1-management-groups
+      $ErrorActionPreference = "Stop"
+      Set-Location "1-management-groups"
+
       terraform init -input=false
       terraform fmt -check
       terraform validate
