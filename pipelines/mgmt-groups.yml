@@ -9,7 +9,7 @@ trigger:
       - pipelines/mgmt-groups.yml
 
 pool:
-  vmImage: ubuntu-latest
+  name: Default   # <-- self-hosted agent pool
 
 variables:
   TF_VERSION: '1.6.6'
