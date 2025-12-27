@@ -18,7 +18,7 @@ steps:
 - task: AzureCLI@2
   displayName: "Terraform Bootstrap (State + Providers)"
   inputs:
-    azureSubscription: 'ALZ_SC01'
+    azureSubscription: 'ALZ_SC_01'
     scriptType: ps
     scriptLocation: inlineScript
     inlineScript: |
