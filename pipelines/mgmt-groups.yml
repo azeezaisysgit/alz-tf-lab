@@ -24,7 +24,7 @@ steps:
 - task: AzureCLI@2
   displayName: "Terraform deploy (1-management-groups)"
   inputs:
-    azureSubscription: 'ALZ_SC01'
+    azureSubscription: 'ALZ_SC_01'
     scriptType: bash
     scriptLocation: inlineScript
     inlineScript: |
