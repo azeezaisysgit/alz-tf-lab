@@ -1,24 +1,25 @@
-trigger: none   # run manually
+trigger: none
 
 pool:
   name: Default
   demands:
     - Agent.OS -equals Windows_NT
 
-variables:
-  TF_VERSION: '1.6.6'
+workspace:
+  clean: all
 
 steps:
 - checkout: self
+  clean: true
 
 - task: TerraformInstaller@1
   inputs:
-    terraformVersion: $(TF_VERSION)
+    terraformVersion: '1.6.6'
 
 - task: AzureCLI@2
   displayName: "Terraform Bootstrap (State + Providers)"
   inputs:
-    azureSubscription: 'ALZ_SC_01'   # <-- ensure underscore matches your service connection
+    azureSubscription: 'ALZ_SC_01'
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
@@ -29,19 +30,16 @@ steps:
       Write-Host "Listing repo root:"
       Get-ChildItem -Force
 
+      if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Repo checkout failed or wrong branch." }
+
       Set-Location "0-bootstrap"
       Write-Host "Now in: $(Get-Location)"
       Get-ChildItem -Force
 
-      # Hard reset local terraform working metadata (safe in CI)
       if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
       if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
 
       terraform -version
-
-      # Backend init (this is the key step)
       terraform init -input=false -reconfigure -upgrade
-
       terraform validate
-      terraform plan -input=false
       terraform apply -auto-approve -input=false
