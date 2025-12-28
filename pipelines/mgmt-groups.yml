@@ -1,43 +1,57 @@
-# ALZ Management Group deployment pipeline
-trigger:
-  branches:
-    include:
-      - main
-  paths:
-    include:
-      - 1-management-groups/**
-      - pipelines/mgmt-groups.yml
+trigger: none
 
 pool:
-  name: Default   # <-- self-hosted agent pool
+  name: Default
+  demands:
+    - Agent.OS -equals Windows_NT
 
 variables:
   TF_VERSION: '1.6.6'
 
 steps:
 - checkout: self
+  clean: true
 
 - task: TerraformInstaller@1
+  displayName: Install Terraform
   inputs:
     terraformVersion: $(TF_VERSION)
 
-- task: AzureCLI@2
-  displayName: "Terraform deploy (1-management-groups)"
+# INIT (separate state file for MGs)
+- task: TerraformTask@5
+  displayName: Terraform Init (1-management-groups)
   inputs:
-    azureSubscription: 'ALZ_SC_01'
-    scriptType: pscore
-    scriptLocation: inlineScript
-    inlineScript: |
-      $ErrorActionPreference = "Stop"
-      Set-Location "1-management-groups"
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '1-management-groups'
+    backendServiceArm: 'ALZ_SC_01'
+    backendAzureRmResourceGroupName: 'terraform-storage-rg'
+    backendAzureRmStorageAccountName: 'terraformstate277'
+    backendAzureRmContainerName: 'tfstatefiles'
+    backendAzureRmKey: 'alz/1-management-groups.tfstate'
+    backendAzureRmUseEntraIdForAuthentication: true
 
-      # Clean any cached backend config from previous runs on the agent
-      if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
-      if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+- task: TerraformTask@5
+  displayName: Terraform Validate (1-management-groups)
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
+    workingDirectory: '1-management-groups'
 
-      terraform init -input=false -reconfigure
+- task: TerraformTask@5
+  displayName: Terraform Plan (1-management-groups)
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    workingDirectory: '1-management-groups'
+    environmentServiceNameAzureRM: 'ALZ_SC_01'
+    commandOptions: '-var-file=../environments/dev.tfvars -out=tfplan'
 
-      terraform fmt -check
-      terraform validate
-      terraform apply -auto-approve -input=false
-      terraform output -json
+- task: TerraformTask@5
+  displayName: Terraform Apply (1-management-groups)
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    workingDirectory: '1-management-groups'
+    environmentServiceNameAzureRM: 'ALZ_SC_01'
+    commandOptions: 'tfplan'

@@ -1,10 +1,10 @@
 terraform {
   required_version = ">= 1.6.0"
 
-required_providers {
+  required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.110"
+      version = "~> 3.0"
     }
   }
 }
@@ -13,76 +13,92 @@ provider "azurerm" {
   features {}
 }
 
-variable "root_management_group_id" {
-  type        = string
-  description = "Tenant Root MG ID"
-  default     = "33511258-7b0d-4c95-88ae-d819e1fcf22d"
+# Tenant Root MG id (you already have this from az account management-group list)
+variable "tenant_root_mg_id" {
+  type = string
 }
 
-data "azurerm_management_group" "root" {
-  name = var.root_management_group_id
+variable "org_prefix" {
+  type = string
+  default = "doe"
 }
 
-# -------------------------
-# Platform MG
-# -------------------------
+# --- Core DoE MG design ---
+# Tenant Root
+#  └── doe
+#      ├── platform
+#      │   ├── identity
+#      │   ├── management
+#      │   └── connectivity
+#      ├── landingzones
+#      │   ├── internal
+#      │   ├── protected
+#      │   └── external
+#      ├── sandbox
+#      └── decommissioned
+
+resource "azurerm_management_group" "doe" {
+  display_name               = upper("${var.org_prefix}")
+  name                       = "${var.org_prefix}"
+  parent_management_group_id = var.tenant_root_mg_id
+}
+
 resource "azurerm_management_group" "platform" {
   display_name               = "Platform"
-  parent_management_group_id = data.azurerm_management_group.root.id
+  name                       = "${var.org_prefix}-platform"
+  parent_management_group_id = azurerm_management_group.doe.id
 }
 
-resource "azurerm_management_group" "identity" {
+resource "azurerm_management_group" "platform_identity" {
   display_name               = "Identity"
+  name                       = "${var.org_prefix}-platform-identity"
   parent_management_group_id = azurerm_management_group.platform.id
 }
 
-resource "azurerm_management_group" "management" {
+resource "azurerm_management_group" "platform_management" {
   display_name               = "Management"
+  name                       = "${var.org_prefix}-platform-management"
   parent_management_group_id = azurerm_management_group.platform.id
 }
 
-resource "azurerm_management_group" "connectivity" {
+resource "azurerm_management_group" "platform_connectivity" {
   display_name               = "Connectivity"
+  name                       = "${var.org_prefix}-platform-connectivity"
   parent_management_group_id = azurerm_management_group.platform.id
 }
 
-resource "azurerm_management_group" "security" {
-  display_name               = "Security"
-  parent_management_group_id = azurerm_management_group.platform.id
-}
-
-# -------------------------
-# Landing Zones MGs (DoE)
-# -------------------------
-resource "azurerm_management_group" "landing_zones" {
+resource "azurerm_management_group" "landingzones" {
   display_name               = "Landing Zones"
-  parent_management_group_id = data.azurerm_management_group.root.id
+  name                       = "${var.org_prefix}-landingzones"
+  parent_management_group_id = azurerm_management_group.doe.id
 }
 
-resource "azurerm_management_group" "internal" {
+resource "azurerm_management_group" "lz_internal" {
   display_name               = "Internal"
-  parent_management_group_id = azurerm_management_group.landing_zones.id
+  name                       = "${var.org_prefix}-lz-internal"
+  parent_management_group_id = azurerm_management_group.landingzones.id
 }
 
-resource "azurerm_management_group" "protected" {
+resource "azurerm_management_group" "lz_protected" {
   display_name               = "Protected"
-  parent_management_group_id = azurerm_management_group.landing_zones.id
+  name                       = "${var.org_prefix}-lz-protected"
+  parent_management_group_id = azurerm_management_group.landingzones.id
 }
 
-resource "azurerm_management_group" "external" {
+resource "azurerm_management_group" "lz_external" {
   display_name               = "External"
-  parent_management_group_id = azurerm_management_group.landing_zones.id
+  name                       = "${var.org_prefix}-lz-external"
+  parent_management_group_id = azurerm_management_group.landingzones.id
 }
 
-# -------------------------
-# Sandbox & Decommissioned
-# -------------------------
 resource "azurerm_management_group" "sandbox" {
   display_name               = "Sandbox"
-  parent_management_group_id = data.azurerm_management_group.root.id
+  name                       = "${var.org_prefix}-sandbox"
+  parent_management_group_id = azurerm_management_group.doe.id
 }
 
 resource "azurerm_management_group" "decommissioned" {
   display_name               = "Decommissioned"
-  parent_management_group_id = data.azurerm_management_group.root.id
+  name                       = "${var.org_prefix}-decommissioned"
+  parent_management_group_id = azurerm_management_group.doe.id
 }

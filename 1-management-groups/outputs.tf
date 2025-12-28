@@ -1,18 +1,15 @@
 output "mg_ids" {
   value = {
-    root          = data.azurerm_management_group.root.id
-    platform      = azurerm_management_group.platform.id
-    identity      = azurerm_management_group.identity.id
-    management    = azurerm_management_group.management.id
-    connectivity  = azurerm_management_group.connectivity.id
-    security      = azurerm_management_group.security.id
-
-    landing_zones = azurerm_management_group.landing_zones.id
-    internal      = azurerm_management_group.internal.id
-    protected     = azurerm_management_group.protected.id
-    external      = azurerm_management_group.external.id
-
-    sandbox       = azurerm_management_group.sandbox.id
-    decommissioned= azurerm_management_group.decommissioned.id
+    doe                 = azurerm_management_group.doe.id
+    platform            = azurerm_management_group.platform.id
+    platform_identity   = azurerm_management_group.platform_identity.id
+    platform_management = azurerm_management_group.platform_management.id
+    platform_connectivity = azurerm_management_group.platform_connectivity.id
+    landingzones        = azurerm_management_group.landingzones.id
+    lz_internal         = azurerm_management_group.lz_internal.id
+    lz_protected        = azurerm_management_group.lz_protected.id
+    lz_external         = azurerm_management_group.lz_external.id
+    sandbox             = azurerm_management_group.sandbox.id
+    decommissioned      = azurerm_management_group.decommissioned.id
   }
 }
