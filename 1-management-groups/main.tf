@@ -27,10 +27,16 @@ provider "azurerm" {
 #      ├── sandbox
 #      └── decommissioned
 
+
+locals {
+  tenant_root_mg_arm_id = startswith(var.tenant_root_mg_id, "/providers/") ?
+    var.tenant_root_mg_id :
+    "/providers/Microsoft.Management/managementGroups/${var.tenant_root_mg_id}"
+}
 resource "azurerm_management_group" "doe" {
   display_name               = upper("${var.org_prefix}")
   name                       = "${var.org_prefix}"
-  parent_management_group_id = var.tenant_root_mg_id
+  parent_management_group_id = local.tenant_root_mg_arm_id
 }
 
 resource "azurerm_management_group" "platform" {
