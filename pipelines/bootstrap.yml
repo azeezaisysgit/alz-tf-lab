@@ -13,41 +13,48 @@ steps:
   clean: true
 
 - task: TerraformInstaller@1
+  displayName: Install Terraform
   inputs:
     terraformVersion: $(TF_VERSION)
 
-# INIT (must authenticate to Azure so backend can be accessed)
-- task: TerraformCLI@0
-  displayName: Terraform Init (Bootstrap)
+# INIT (backend + providers)
+- task: TerraformTask@5
+  displayName: Terraform Init (0-bootstrap)
   inputs:
-    command: init
-    workingDirectory: 0-bootstrap
-    environmentServiceNameAzureRM: ALZ_SC_01
-    allowTelemetryCollection: false
-    # Add these args to avoid “backend changed” issues on self-hosted agents
-    args: -reconfigure -upgrade
+    provider: 'azurerm'
+    command: 'init'
+    workingDirectory: '0-bootstrap'
+    backendServiceArm: 'ALZ_SC_01'
+    backendAzureRmResourceGroupName: 'terraform-storage-rg'
+    backendAzureRmStorageAccountName: 'terraformstate277'
+    backendAzureRmContainerName: 'tfstatefiles'
+    backendAzureRmKey: 'alz/0-bootstrap.tfstate'
+    backendAzureRmUseEntraIdForAuthentication: true
 
-- task: TerraformCLI@0
-  displayName: Terraform Validate (Bootstrap)
+# VALIDATE
+- task: TerraformTask@5
+  displayName: Terraform Validate (0-bootstrap)
   inputs:
-    command: validate
-    workingDirectory: 0-bootstrap
-    allowTelemetryCollection: false
+    provider: 'azurerm'
+    command: 'validate'
+    workingDirectory: '0-bootstrap'
 
-- task: TerraformCLI@0
-  displayName: Terraform Plan (Bootstrap)
+# PLAN (optional but recommended)
+- task: TerraformTask@5
+  displayName: Terraform Plan (0-bootstrap)
   inputs:
-    command: plan
-    workingDirectory: 0-bootstrap
-    environmentServiceNameAzureRM: ALZ_SC_01
-    allowTelemetryCollection: false
-    args: -out=tfplan
+    provider: 'azurerm'
+    command: 'plan'
+    workingDirectory: '0-bootstrap'
+    environmentServiceNameAzureRM: 'ALZ_SC_01'
+    commandOptions: '-out=tfplan'
 
-- task: TerraformCLI@0
-  displayName: Terraform Apply (Bootstrap)
+# APPLY
+- task: TerraformTask@5
+  displayName: Terraform Apply (0-bootstrap)
   inputs:
-    command: apply
-    workingDirectory: 0-bootstrap
-    environmentServiceNameAzureRM: ALZ_SC_01
-    allowTelemetryCollection: false
-    args: -auto-approve tfplan
+    provider: 'azurerm'
+    command: 'apply'
+    workingDirectory: '0-bootstrap'
+    environmentServiceNameAzureRM: 'ALZ_SC_01'
+    commandOptions: 'tfplan'
