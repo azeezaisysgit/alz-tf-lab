@@ -35,15 +35,18 @@ steps:
 
       if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Checkout failed." }
 
-      Set-Location "0-bootstrap"
-      Write-Host "Now in: $(Get-Location)"
-      Get-ChildItem -Force
+Set-Location "0-bootstrap"
 
-      if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
-      if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+# Clean old cached metadata (important on self-hosted agents)
+if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
+if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
 
-      terraform -version
-      terraform init -input=false -reconfigure -upgrade
-      terraform providers
-      terraform validate
-      terraform apply -auto-approve -input=false
+# 1) INIT FIRST (backend + providers)
+terraform init -input=false -reconfigure -upgrade
+
+# 2) Then validate
+terraform validate
+
+# 3) Then apply (or plan then apply)
+terraform apply -auto-approve -input=false
+
