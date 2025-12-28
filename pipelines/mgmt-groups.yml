@@ -5,19 +5,42 @@ pool:
   demands:
     - Agent.OS -equals Windows_NT
 
+# IMPORTANT on self-hosted agents
+workspace:
+  clean: all
+
 variables:
   TF_VERSION: '1.6.6'
 
 steps:
 - checkout: self
   clean: true
+  fetchDepth: 0
+
+# Print which commit this run is actually using
+- powershell: |
+    Write-Host "Build.SourceBranch: $(Build.SourceBranch)"
+    Write-Host "Build.SourceVersion (commit): $(Build.SourceVersion)"
+    git --version
+    git rev-parse HEAD
+    git log -1 --oneline
+  displayName: "DEBUG: Print commit info"
+
+# Print the TF files so you can verify NO duplicates at runtime
+- powershell: |
+    Write-Host "---- 1-management-groups/main.tf (first 120 lines) ----"
+    Get-Content "1-management-groups\main.tf" | Select-Object -First 120
+    Write-Host ""
+    Write-Host "---- 1-management-groups/variables.tf (first 120 lines) ----"
+    Get-Content "1-management-groups\variables.tf" | Select-Object -First 120
+  displayName: "DEBUG: Print Terraform files (MG)"
 
 - task: TerraformInstaller@1
   displayName: Install Terraform
   inputs:
     terraformVersion: $(TF_VERSION)
 
-# INIT (separate state file for MGs)
+# INIT (separate state file for Management Groups)
 - task: TerraformTask@5
   displayName: Terraform Init (1-management-groups)
   inputs:
