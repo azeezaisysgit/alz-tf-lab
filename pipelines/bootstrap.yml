@@ -16,25 +16,17 @@ steps:
   inputs:
     terraformVersion: $(TF_VERSION)
 
-# -----------------------
-# Terraform INIT
-# -----------------------
+# INIT (must authenticate to Azure so backend can be accessed)
 - task: TerraformCLI@0
   displayName: Terraform Init (Bootstrap)
   inputs:
     command: init
     workingDirectory: 0-bootstrap
-    backendType: azurerm
-    backendServiceArm: ALZ_SC_01
-    backendAzureRmResourceGroupName: terraform-storage-rg
-    backendAzureRmStorageAccountName: terraformstate277
-    backendAzureRmContainerName: tfstatefiles
-    backendAzureRmKey: alz/0-bootstrap.tfstate
+    environmentServiceNameAzureRM: ALZ_SC_01
     allowTelemetryCollection: false
+    # Add these args to avoid “backend changed” issues on self-hosted agents
+    args: -reconfigure -upgrade
 
-# -----------------------
-# Terraform VALIDATE
-# -----------------------
 - task: TerraformCLI@0
   displayName: Terraform Validate (Bootstrap)
   inputs:
@@ -42,9 +34,15 @@ steps:
     workingDirectory: 0-bootstrap
     allowTelemetryCollection: false
 
-# -----------------------
-# Terraform APPLY
-# -----------------------
+- task: TerraformCLI@0
+  displayName: Terraform Plan (Bootstrap)
+  inputs:
+    command: plan
+    workingDirectory: 0-bootstrap
+    environmentServiceNameAzureRM: ALZ_SC_01
+    allowTelemetryCollection: false
+    args: -out=tfplan
+
 - task: TerraformCLI@0
   displayName: Terraform Apply (Bootstrap)
   inputs:
@@ -52,4 +50,4 @@ steps:
     workingDirectory: 0-bootstrap
     environmentServiceNameAzureRM: ALZ_SC_01
     allowTelemetryCollection: false
-    args: -auto-approve
+    args: -auto-approve tfplan
