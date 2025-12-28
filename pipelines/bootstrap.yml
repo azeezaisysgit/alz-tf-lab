@@ -26,29 +26,41 @@ steps:
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
-      $ErrorActionPreference = "Stop"
+  $ErrorActionPreference = "Stop"
 
-      Write-Host "Agent: $env:AGENT_NAME"
-      Write-Host "PWD before: $(Get-Location)"
-      Get-ChildItem -Force
+  Write-Host "===== REPO ROOT ====="
+  Write-Host "PWD: $(Get-Location)"
+  Get-ChildItem -Force | Select-Object Name
 
-      if (!(Test-Path "0-bootstrap")) {
-        throw "0-bootstrap folder not found"
-      }
+  Write-Host "===== GIT COMMIT (agent checkout) ====="
+  git --version
+  git rev-parse HEAD
+  git log -1 --oneline
 
-      Set-Location "0-bootstrap"
-      Write-Host "PWD after: $(Get-Location)"
-      Get-ChildItem -Force
+  if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Checkout failed." }
 
-      if (Test-Path ".terraform") {
-        Remove-Item ".terraform" -Recurse -Force
-      }
+  Set-Location "0-bootstrap"
 
-      if (Test-Path ".terraform.lock.hcl") {
-        Remove-Item ".terraform.lock.hcl" -Force
-      }
+  Write-Host "===== 0-bootstrap CONTENTS ====="
+  Get-ChildItem -Force | Select-Object Name
 
-      terraform -version
-      terraform init -input=false -reconfigure -upgrade
-      terraform validate
-      terraform apply -auto-approve -input=false
+  Write-Host "===== main.tf (agent) ====="
+  Get-Content ".\main.tf"
+
+  Write-Host "===== backend.tf (agent) ====="
+  Get-Content ".\backend.tf"
+
+  if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
+  if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+
+  terraform -version
+
+  Write-Host "===== terraform init output ====="
+  terraform init -input=false -reconfigure -upgrade -no-color
+
+  Write-Host "===== terraform validate ====="
+  terraform validate -no-color
+
+  Write-Host "===== terraform apply ====="
+  terraform apply -auto-approve -input=false -no-color
+
