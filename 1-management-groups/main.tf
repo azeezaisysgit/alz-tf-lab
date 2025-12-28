@@ -13,16 +13,6 @@ provider "azurerm" {
   features {}
 }
 
-# Tenant Root MG id (you already have this from az account management-group list)
-variable "tenant_root_mg_id" {
-  type = string
-}
-
-variable "org_prefix" {
-  type = string
-  default = "doe"
-}
-
 # --- Core DoE MG design ---
 # Tenant Root
 #  └── doe
