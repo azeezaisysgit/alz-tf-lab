@@ -19,7 +19,7 @@ steps:
 # -----------------------
 # Terraform INIT
 # -----------------------
-- task: TerraformCLI@1
+- task: TerraformCLI@0
   displayName: Terraform Init (Bootstrap)
   inputs:
     command: init
@@ -35,7 +35,7 @@ steps:
 # -----------------------
 # Terraform VALIDATE
 # -----------------------
-- task: TerraformCLI@1
+- task: TerraformCLI@0
   displayName: Terraform Validate (Bootstrap)
   inputs:
     command: validate
@@ -45,7 +45,7 @@ steps:
 # -----------------------
 # Terraform APPLY
 # -----------------------
-- task: TerraformCLI@1
+- task: TerraformCLI@0
   displayName: Terraform Apply (Bootstrap)
   inputs:
     command: apply
