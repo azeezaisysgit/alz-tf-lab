@@ -20,43 +20,35 @@ steps:
     terraformVersion: $(TF_VERSION)
 
 - task: AzureCLI@2
-  displayName: "Terraform Bootstrap (State + Providers)"
+  displayName: Terraform Bootstrap
   inputs:
     azureSubscription: "ALZ_SC_01"
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
-  $ErrorActionPreference = "Stop"
+      $ErrorActionPreference = "Stop"
 
-  Write-Host "Agent: $env:AGENT_NAME"
-  Write-Host "PWD (before): $(Get-Location)"
-  Write-Host "Repo root contents:"
-  Get-ChildItem -Force | Select-Object Name
+      Write-Host "Agent: $env:AGENT_NAME"
+      Write-Host "PWD before: $(Get-Location)"
+      Get-ChildItem -Force
 
-  if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Checkout failed." }
+      if (!(Test-Path "0-bootstrap")) {
+        throw "0-bootstrap folder not found"
+      }
 
-  Set-Location "0-bootstrap"
-  Write-Host "PWD (0-bootstrap): $(Get-Location)"
-  Write-Host "0-bootstrap contents:"
-  Get-ChildItem -Force | Select-Object Name
+      Set-Location "0-bootstrap"
+      Write-Host "PWD after: $(Get-Location)"
+      Get-ChildItem -Force
 
-  Write-Host "----- main.tf (first 60 lines) -----"
-  Get-Content ".\main.tf" -TotalCount 60
+      if (Test-Path ".terraform") {
+        Remove-Item ".terraform" -Recurse -Force
+      }
 
-  Write-Host "----- backend.tf -----"
-  Get-Content ".\backend.tf"
+      if (Test-Path ".terraform.lock.hcl") {
+        Remove-Item ".terraform.lock.hcl" -Force
+      }
 
-  # Clean cached terraform metadata
-  if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
-  if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
-
-  terraform -version
-
-  Write-Host "===== RUNNING: terraform init ====="
-  terraform init -input=false -reconfigure -upgrade -no-color
-
-  Write-Host "===== RUNNING: terraform validate ====="
-  terraform validate -no-color
-
-  Write-Host "===== RUNNING: terraform apply ====="
-  terraform apply -auto-approve -input=false -no-color
+      terraform -version
+      terraform init -input=false -reconfigure -upgrade
+      terraform validate
+      terraform apply -auto-approve -input=false
