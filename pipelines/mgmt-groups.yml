@@ -61,6 +61,27 @@ steps:
     command: 'validate'
     workingDirectory: '1-management-groups'
 
+- powershell: |
+    Write-Host "PWD: $(Get-Location)"
+    Write-Host "Repo files:"
+    Get-ChildItem -Recurse -Depth 2 | Select-Object FullName
+    Write-Host "---- environments/dev.tfvars ----"
+    Get-Content "environments\dev.tfvars"
+    Write-Host "---- 1-management-groups files ----"
+    Get-ChildItem "1-management-groups" -Force
+    if (Test-Path "1-management-groups\terraform.tfvars") { 
+      Write-Host "---- 1-management-groups/terraform.tfvars ----"
+      Get-Content "1-management-groups\terraform.tfvars"
+    }
+    if (Test-Path "1-management-groups\*.auto.tfvars") {
+      Write-Host "Found auto tfvars:"
+      Get-ChildItem "1-management-groups\*.auto.tfvars" -Force
+    }
+    Write-Host "Env override check: TF_VAR_tenant_root_mg_id = $env:TF_VAR_tenant_root_mg_id"
+  displayName: "DEBUG: Verify tfvars file + overrides"
+
+
+
 - task: TerraformTask@5
   displayName: Terraform Plan (1-management-groups)
   inputs:
