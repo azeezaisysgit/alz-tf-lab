@@ -22,45 +22,44 @@ steps:
 - task: AzureCLI@2
   displayName: Terraform Bootstrap
   inputs:
-    azureSubscription: "ALZ_SC_01"
+    azureSubscription: ALZ_SC_01
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
-  $ErrorActionPreference = "Stop"
+      $ErrorActionPreference = "Stop"
 
-  Write-Host "===== REPO ROOT ====="
-  Write-Host "PWD: $(Get-Location)"
-  Get-ChildItem -Force | Select-Object Name
+      Write-Host "===== REPO ROOT ====="
+      Write-Host "PWD: $(Get-Location)"
+      Get-ChildItem -Force
 
-  Write-Host "===== GIT COMMIT (agent checkout) ====="
-  git --version
-  git rev-parse HEAD
-  git log -1 --oneline
+      Write-Host "===== GIT COMMIT ====="
+      git rev-parse HEAD
+      git log -1 --oneline
 
-  if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Checkout failed." }
+      if (!(Test-Path "0-bootstrap")) {
+        throw "0-bootstrap folder not found"
+      }
 
-  Set-Location "0-bootstrap"
+      Set-Location "0-bootstrap"
 
-  Write-Host "===== 0-bootstrap CONTENTS ====="
-  Get-ChildItem -Force | Select-Object Name
+      Write-Host "===== 0-bootstrap CONTENTS ====="
+      Get-ChildItem -Force
 
-  Write-Host "===== main.tf (agent) ====="
-  Get-Content ".\main.tf"
+      Write-Host "===== main.tf ====="
+      Get-Content ".\main.tf"
 
-  Write-Host "===== backend.tf (agent) ====="
-  Get-Content ".\backend.tf"
+      Write-Host "===== backend.tf ====="
+      Get-Content ".\backend.tf"
 
-  if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
-  if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+      if (Test-Path ".terraform") {
+        Remove-Item ".terraform" -Recurse -Force
+      }
 
-  terraform -version
+      if (Test-Path ".terraform.lock.hcl") {
+        Remove-Item ".terraform.lock.hcl" -Force
+      }
 
-  Write-Host "===== terraform init output ====="
-  terraform init -input=false -reconfigure -upgrade -no-color
-
-  Write-Host "===== terraform validate ====="
-  terraform validate -no-color
-
-  Write-Host "===== terraform apply ====="
-  terraform apply -auto-approve -input=false -no-color
-
+      terraform -version
+      terraform init -input=false -reconfigure -upgrade
+      terraform validate
+      terraform apply -auto-approve -input=false
