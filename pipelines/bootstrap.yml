@@ -8,30 +8,42 @@ pool:
 workspace:
   clean: all
 
+variables:
+  TF_VERSION: '1.6.6'
+
 steps:
 - checkout: self
   clean: true
 
 - task: TerraformInstaller@1
   inputs:
-    terraformVersion: '1.6.6'
+    terraformVersion: $(TF_VERSION)
 
 - task: AzureCLI@2
   displayName: "Terraform Bootstrap (State + Providers)"
   inputs:
-    azureSubscription: 'ALZ_SC_01'
+    azureSubscription: "ALZ_SC_01"
     scriptType: pscore
     scriptLocation: inlineScript
     inlineScript: |
-$ErrorActionPreference = "Stop"
-Set-Location "0-bootstrap"
+      $ErrorActionPreference = "Stop"
 
-# Clean cached terraform metadata
-if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
-if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+      Write-Host "Agent: $env:AGENT_NAME"
+      Write-Host "WorkingDir: $(Get-Location)"
+      Write-Host "Repo root:"
+      Get-ChildItem -Force
 
-terraform init -input=false -reconfigure
-terraform providers
+      if (!(Test-Path "0-bootstrap")) { throw "0-bootstrap folder not found. Checkout failed." }
 
-terraform validate
-terraform apply -auto-approve -input=false
+      Set-Location "0-bootstrap"
+      Write-Host "Now in: $(Get-Location)"
+      Get-ChildItem -Force
+
+      if (Test-Path ".terraform") { Remove-Item ".terraform" -Recurse -Force }
+      if (Test-Path ".terraform.lock.hcl") { Remove-Item ".terraform.lock.hcl" -Force }
+
+      terraform -version
+      terraform init -input=false -reconfigure -upgrade
+      terraform providers
+      terraform validate
+      terraform apply -auto-approve -input=false
