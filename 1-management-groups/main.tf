@@ -27,14 +27,9 @@ provider "azurerm" {
 #      ├── sandbox
 #      └── decommissioned
 
-
 locals {
-  # Always derive the Management Group *NAME*
-  tenant_root_mg_name = startswith(var.tenant_root_mg_id, "/providers/")
-    ? element(split("/", var.tenant_root_mg_id), length(split("/", var.tenant_root_mg_id)) - 1)
-    : var.tenant_root_mg_id
+  tenant_root_mg_name = startswith(var.tenant_root_mg_id, "/providers/") ? element(split("/", var.tenant_root_mg_id), length(split("/", var.tenant_root_mg_id)) - 1) : var.tenant_root_mg_id
 }
-
 resource "azurerm_management_group" "doe" {
   display_name               = "${var.org_prefix}-doe"
   name                       = "${var.org_prefix}-doe"
