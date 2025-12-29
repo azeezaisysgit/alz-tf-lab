@@ -35,8 +35,8 @@ locals {
 }
 
 resource "azurerm_management_group" "doe" {
-  display_name               = upper("${var.org_prefix}")
-  name                       = "${var.org_prefix}"
+  display_name               = "${var.org_prefix}-doe"
+  name                       = "${var.org_prefix}-doe"
   parent_management_group_id = local.tenant_root_mg_arm_id
 }
 

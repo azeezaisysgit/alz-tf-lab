@@ -61,6 +61,13 @@ steps:
     workingDirectory: '$(TF_WORKING_DIR)'
     allowTelemetryCollection: false
 
+- powershell: |
+    Write-Host "Commit: $(Build.SourceVersion)"
+    Write-Host "Branch: $(Build.SourceBranch)"
+    Write-Host "parent_management_group_id lines in main.tf:"
+    Select-String -Path "1-management-groups\main.tf" -Pattern "parent_management_group_id"
+  displayName: "DEBUG: confirm code used by agent"
+
 # -----------------------
 # Terraform PLAN
 # -----------------------
