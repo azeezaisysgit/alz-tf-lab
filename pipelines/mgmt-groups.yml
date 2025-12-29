@@ -61,12 +61,18 @@ steps:
     workingDirectory: '$(TF_WORKING_DIR)'
     allowTelemetryCollection: false
 
+# -----------------------
+# GUARD (must pass)
+# -----------------------
 - powershell: |
     Write-Host "Commit: $(Build.SourceVersion)"
-    Write-Host "Branch: $(Build.SourceBranch)"
-    Write-Host "parent_management_group_id lines in main.tf:"
-    Select-String -Path "1-management-groups\main.tf" -Pattern "parent_management_group_id"
-  displayName: "DEBUG: confirm code used by agent"
+    $content = Get-Content "1-management-groups\main.tf" -Raw
+    if ($content -notmatch "local\.tenant_root_mg_arm_id") {
+      Write-Error "STOP: Pipeline is NOT using the expected main.tf (missing local.tenant_root_mg_arm_id)."
+      exit 1
+    }
+    Write-Host "OK: Correct main.tf detected."
+  displayName: "GUARD: ensure correct main.tf is used"
 
 # -----------------------
 # Terraform PLAN
@@ -78,7 +84,10 @@ steps:
     command: 'plan'
     workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: '-var-file=$(TFVARS_FILE) -out=tfplan'
+    commandOptions: >
+      -var-file=$(TFVARS_FILE)
+      -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
+      -out=tfplan
     allowTelemetryCollection: false
 
 # -----------------------
@@ -91,5 +100,7 @@ steps:
     command: 'apply'
     workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: 'tfplan'
+    commandOptions: >
+      -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
+      tfplan
     allowTelemetryCollection: false
