@@ -29,15 +29,16 @@ provider "azurerm" {
 
 
 locals {
-  tenant_root_mg_arm_id = startswith(var.tenant_root_mg_id, "/providers/")
-    ? var.tenant_root_mg_id
-    : "/providers/Microsoft.Management/managementGroups/${var.tenant_root_mg_id}"
+  # Always derive the Management Group *NAME*
+  tenant_root_mg_name = startswith(var.tenant_root_mg_id, "/providers/")
+    ? element(split("/", var.tenant_root_mg_id), length(split("/", var.tenant_root_mg_id)) - 1)
+    : var.tenant_root_mg_id
 }
 
 resource "azurerm_management_group" "doe" {
   display_name               = "${var.org_prefix}-doe"
   name                       = "${var.org_prefix}-doe"
-  parent_management_group_id = local.tenant_root_mg_arm_id
+  parent_management_group_id = local.tenant_root_mg_name
 }
 
 resource "azurerm_management_group" "platform" {
