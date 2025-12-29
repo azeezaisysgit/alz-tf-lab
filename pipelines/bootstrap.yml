@@ -39,6 +39,13 @@ steps:
     command: 'validate'
     workingDirectory: '0-bootstrap'
 
+- powershell: |
+    Write-Host "Commit: $(Build.SourceVersion)"
+    Write-Host "Branch: $(Build.SourceBranch)"
+    Write-Host "Show parent_management_group_id lines:"
+    Select-String -Path "1-management-groups\main.tf" -Pattern "parent_management_group_id"
+  displayName: "DEBUG: confirm main.tf used by pipeline"
+
 # PLAN (optional but recommended)
 - task: TerraformTask@5
   displayName: Terraform Plan (0-bootstrap)
