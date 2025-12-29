@@ -30,6 +30,8 @@ steps:
     Write-Host "Repo: $(Build.Repository.Name)"
     Write-Host "Parent MG line(s) in main.tf:"
     Select-String -Path "$(TF_WORKING_DIR)\main.tf" -Pattern "parent_management_group_id|tenant_root_mg_name"
+    Write-Host "main.tf (lines 25-45):"
+    (Get-Content "$(TF_WORKING_DIR)\main.tf")[24..44] | ForEach-Object -Begin {$i=25} -Process { "{0,3}: {1}" -f $i++, $_ }
     Write-Host "dev.tfvars:"
     Get-Content "environments\dev.tfvars"
   displayName: "DEBUG: confirm files used"
