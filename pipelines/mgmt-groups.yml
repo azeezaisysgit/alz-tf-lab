@@ -80,6 +80,12 @@ steps:
     Write-Host "Env override check: TF_VAR_tenant_root_mg_id = $env:TF_VAR_tenant_root_mg_id"
   displayName: "DEBUG: Verify tfvars file + overrides"
 
+- powershell: |
+    Write-Host "Commit used by run: $(Build.SourceVersion)"
+    Write-Host "---- main.tf (with line numbers) ----"
+    $i=1
+    Get-Content "1-management-groups\main.tf" | ForEach-Object { "{0,4}: {1}" -f $i, $_; $i++ }
+  displayName: "DEBUG: Show 1-management-groups/main.tf with line numbers"
 
 
 - task: TerraformTask@5
@@ -89,7 +95,10 @@ steps:
     command: 'plan'
     workingDirectory: '1-management-groups'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: '-var-file=../environments/dev.tfvars -out=tfplan'
+    commandOptions: >
+    -var-file=../environments/dev.tfvars
+    -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
+    -out=tfplan
 
 - task: TerraformTask@5
   displayName: Terraform Apply (1-management-groups)
@@ -98,4 +107,6 @@ steps:
     command: 'apply'
     workingDirectory: '1-management-groups'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: 'tfplan'
+    commandOptions: >
+    -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
+    tfplan
