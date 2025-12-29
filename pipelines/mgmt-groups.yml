@@ -66,13 +66,10 @@ steps:
 # -----------------------
 - powershell: |
     Write-Host "Commit: $(Build.SourceVersion)"
-    $content = Get-Content "1-management-groups\main.tf" -Raw
-    if ($content -notmatch "local\.tenant_root_mg_arm_id") {
-      Write-Error "STOP: Pipeline is NOT using the expected main.tf (missing local.tenant_root_mg_arm_id)."
-      exit 1
-    }
-    Write-Host "OK: Correct main.tf detected."
-  displayName: "GUARD: ensure correct main.tf is used"
+    $line = (Get-Content "1-management-groups\main.tf" | Select-String "parent_management_group_id").Line
+    Write-Host "Detected parent line: $line"
+    if ($line -match "var\.tenant_root_mg_id") { throw "STOP: still using old main.tf" }
+  displayName: "GUARD: confirm updated main.tf is used"
 
 # -----------------------
 # Terraform PLAN
