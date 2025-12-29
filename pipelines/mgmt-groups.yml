@@ -5,108 +5,84 @@ pool:
   demands:
     - Agent.OS -equals Windows_NT
 
-# IMPORTANT on self-hosted agents
 workspace:
   clean: all
 
 variables:
   TF_VERSION: '1.6.6'
+  TF_WORKING_DIR: '1-management-groups'
+  TFVARS_FILE: '../environments/dev.tfvars'
+  BACKEND_KEY: 'alz/1-management-groups.tfstate'
 
 steps:
 - checkout: self
   clean: true
-  fetchDepth: 0
-
-# Print which commit this run is actually using
-- powershell: |
-    Write-Host "Build.SourceBranch: $(Build.SourceBranch)"
-    Write-Host "Build.SourceVersion (commit): $(Build.SourceVersion)"
-    git --version
-    git rev-parse HEAD
-    git log -1 --oneline
-  displayName: "DEBUG: Print commit info"
-
-# Print the TF files so you can verify NO duplicates at runtime
-- powershell: |
-    Write-Host "---- 1-management-groups/main.tf (first 120 lines) ----"
-    Get-Content "1-management-groups\main.tf" | Select-Object -First 120
-    Write-Host ""
-    Write-Host "---- 1-management-groups/variables.tf (first 120 lines) ----"
-    Get-Content "1-management-groups\variables.tf" | Select-Object -First 120
-  displayName: "DEBUG: Print Terraform files (MG)"
 
 - task: TerraformInstaller@1
-  displayName: Install Terraform
+  displayName: 'Install Terraform'
   inputs:
     terraformVersion: $(TF_VERSION)
 
-# INIT (separate state file for Management Groups)
-- task: TerraformTask@5
-  displayName: Terraform Init (1-management-groups)
+# --- DEBUG: prove which commit + file is being executed ---
+- powershell: |
+    Write-Host "Build.SourceVersion: $(Build.SourceVersion)"
+    Write-Host "Build.SourceBranch: $(Build.SourceBranch)"
+    Write-Host "Repo root:"
+    Get-ChildItem -Force
+    Write-Host "---- main.tf (line numbered) ----"
+    $i=1
+    Get-Content "$(TF_WORKING_DIR)\main.tf" | ForEach-Object { "{0,4}: {1}" -f $i, $_; $i++ }
+  displayName: 'DEBUG: show commit + main.tf'
+  
+# -----------------------
+# Terraform INIT
+# -----------------------
+- task: TerraformTaskV5@5
+  displayName: 'Terraform Init (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'init'
-    workingDirectory: '1-management-groups'
+    workingDirectory: '$(TF_WORKING_DIR)'
     backendServiceArm: 'ALZ_SC_01'
     backendAzureRmResourceGroupName: 'terraform-storage-rg'
     backendAzureRmStorageAccountName: 'terraformstate277'
     backendAzureRmContainerName: 'tfstatefiles'
-    backendAzureRmKey: 'alz/1-management-groups.tfstate'
-    backendAzureRmUseEntraIdForAuthentication: true
+    backendAzureRmKey: '$(BACKEND_KEY)'
+    allowTelemetryCollection: false
 
-- task: TerraformTask@5
-  displayName: Terraform Validate (1-management-groups)
+# -----------------------
+# Terraform VALIDATE
+# -----------------------
+- task: TerraformTaskV5@5
+  displayName: 'Terraform Validate (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'validate'
-    workingDirectory: '1-management-groups'
+    workingDirectory: '$(TF_WORKING_DIR)'
+    allowTelemetryCollection: false
 
-- powershell: |
-    Write-Host "PWD: $(Get-Location)"
-    Write-Host "Repo files:"
-    Get-ChildItem -Recurse -Depth 2 | Select-Object FullName
-    Write-Host "---- environments/dev.tfvars ----"
-    Get-Content "environments\dev.tfvars"
-    Write-Host "---- 1-management-groups files ----"
-    Get-ChildItem "1-management-groups" -Force
-    if (Test-Path "1-management-groups\terraform.tfvars") { 
-      Write-Host "---- 1-management-groups/terraform.tfvars ----"
-      Get-Content "1-management-groups\terraform.tfvars"
-    }
-    if (Test-Path "1-management-groups\*.auto.tfvars") {
-      Write-Host "Found auto tfvars:"
-      Get-ChildItem "1-management-groups\*.auto.tfvars" -Force
-    }
-    Write-Host "Env override check: TF_VAR_tenant_root_mg_id = $env:TF_VAR_tenant_root_mg_id"
-  displayName: "DEBUG: Verify tfvars file + overrides"
-
-- powershell: |
-    Write-Host "Commit used by run: $(Build.SourceVersion)"
-    Write-Host "---- main.tf (with line numbers) ----"
-    $i=1
-    Get-Content "1-management-groups\main.tf" | ForEach-Object { "{0,4}: {1}" -f $i, $_; $i++ }
-  displayName: "DEBUG: Show 1-management-groups/main.tf with line numbers"
-
-
-- task: TerraformTask@5
-  displayName: Terraform Plan (1-management-groups)
+# -----------------------
+# Terraform PLAN
+# -----------------------
+- task: TerraformTaskV5@5
+  displayName: 'Terraform Plan (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'plan'
-    workingDirectory: '1-management-groups'
+    workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: >
-    -var-file=../environments/dev.tfvars
-    -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
-    -out=tfplan
+    commandOptions: '-var-file=$(TFVARS_FILE) -out=tfplan'
+    allowTelemetryCollection: false
 
-- task: TerraformTask@5
-  displayName: Terraform Apply (1-management-groups)
+# -----------------------
+# Terraform APPLY
+# -----------------------
+- task: TerraformTaskV5@5
+  displayName: 'Terraform Apply (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'apply'
-    workingDirectory: '1-management-groups'
+    workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: >
-    -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
-    tfplan
+    commandOptions: 'tfplan'
+    allowTelemetryCollection: false
