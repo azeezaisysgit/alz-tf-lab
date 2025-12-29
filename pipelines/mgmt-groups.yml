@@ -23,21 +23,19 @@ steps:
   inputs:
     terraformVersion: $(TF_VERSION)
 
-# --- DEBUG: prove which commit + file is being executed ---
+# Debug (optional but recommended)
 - powershell: |
-    Write-Host "Build.SourceVersion: $(Build.SourceVersion)"
-    Write-Host "Build.SourceBranch: $(Build.SourceBranch)"
-    Write-Host "Repo root:"
-    Get-ChildItem -Force
-    Write-Host "---- main.tf (line numbered) ----"
-    $i=1
-    Get-Content "$(TF_WORKING_DIR)\main.tf" | ForEach-Object { "{0,4}: {1}" -f $i, $_; $i++ }
-  displayName: 'DEBUG: show commit + main.tf'
-  
-# -----------------------
-# Terraform INIT
-# -----------------------
-- task: TerraformTaskV5@5
+    Write-Host "Commit: $(Build.SourceVersion)"
+    Write-Host "Branch: $(Build.SourceBranch)"
+    Write-Host "Repo: $(Build.Repository.Name)"
+    Write-Host "Parent MG line(s) in main.tf:"
+    Select-String -Path "$(TF_WORKING_DIR)\main.tf" -Pattern "parent_management_group_id|tenant_root_mg_name"
+    Write-Host "dev.tfvars:"
+    Get-Content "environments\dev.tfvars"
+  displayName: "DEBUG: confirm files used"
+
+# INIT
+- task: TerraformTask@5
   displayName: 'Terraform Init (1-management-groups)'
   inputs:
     provider: 'azurerm'
@@ -48,12 +46,11 @@ steps:
     backendAzureRmStorageAccountName: 'terraformstate277'
     backendAzureRmContainerName: 'tfstatefiles'
     backendAzureRmKey: '$(BACKEND_KEY)'
+    backendAzureRmUseEntraIdForAuthentication: true
     allowTelemetryCollection: false
 
-# -----------------------
-# Terraform VALIDATE
-# -----------------------
-- task: TerraformTaskV5@5
+# VALIDATE
+- task: TerraformTask@5
   displayName: 'Terraform Validate (1-management-groups)'
   inputs:
     provider: 'azurerm'
@@ -61,43 +58,24 @@ steps:
     workingDirectory: '$(TF_WORKING_DIR)'
     allowTelemetryCollection: false
 
-# -----------------------
-# GUARD (must pass)
-# -----------------------
-- powershell: |
-    Write-Host "Commit: $(Build.SourceVersion)"
-    $line = (Get-Content "1-management-groups\main.tf" | Select-String "parent_management_group_id").Line
-    Write-Host "Detected parent line: $line"
-    if ($line -match "var\.tenant_root_mg_id") { throw "STOP: still using old main.tf" }
-  displayName: "GUARD: confirm updated main.tf is used"
-
-# -----------------------
-# Terraform PLAN
-# -----------------------
-- task: TerraformTaskV5@5
+# PLAN
+- task: TerraformTask@5
   displayName: 'Terraform Plan (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'plan'
     workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: >
-      -var-file=$(TFVARS_FILE)
-      -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
-      -out=tfplan
+    commandOptions: '-var-file=$(TFVARS_FILE) -out=tfplan'
     allowTelemetryCollection: false
 
-# -----------------------
-# Terraform APPLY
-# -----------------------
-- task: TerraformTaskV5@5
+# APPLY
+- task: TerraformTask@5
   displayName: 'Terraform Apply (1-management-groups)'
   inputs:
     provider: 'azurerm'
     command: 'apply'
     workingDirectory: '$(TF_WORKING_DIR)'
     environmentServiceNameAzureRM: 'ALZ_SC_01'
-    commandOptions: >
-      -var="tenant_root_mg_id=/providers/Microsoft.Management/managementGroups/33511258-7b0d-4c95-88ae-d819e1fcf22d"
-      tfplan
+    commandOptions: 'tfplan'
     allowTelemetryCollection: false
